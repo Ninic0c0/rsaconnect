@@ -4,7 +4,7 @@
 #File:    rsaconnect                                            #
 #Author:  Nicolas SALMIN                                        #
 #Date:    Created: 03/12/2019                                   #
-#Version: 1.0                                                   #
+#Version: 1.1                                                   #
 #Brief:   Generate and send RSA to a remote device              #
 #Usage:   ./rsaconnect <user_name> <ip_addr> <ssh_port> <alias> #
 #Example: ./rsaconnect pi 192.168.42.1 2222 rpp4                #
@@ -112,7 +112,6 @@ else
     echo "$CONFIG_FILE already exists. Skipped."
 fi
 
-echo -e "Step 8: Adding alias to ssh config file"
 {
     echo ""
     echo "Host $UALIAS"
@@ -123,7 +122,7 @@ echo -e "Step 8: Adding alias to ssh config file"
     echo "    IdentityFile $RSA_KEY.pub"
 } >> "$CONFIG_FILE"
 
-echo -e "Step 9: Try RSA key"
+echo -e "Step 8: Try RSA key"
 echo "We will try to connect you to your host: $UNAME@$IPADDR"
 read -p "Continue? [Yy]" -n 1 -r
 echo
