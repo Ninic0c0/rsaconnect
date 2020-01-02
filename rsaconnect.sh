@@ -27,10 +27,10 @@ cat << "EOF"
 EOF
 
 if [ $# -ne 4 ]; then
-    read -p "Enter remote user name: " UNAME
-    read -p "Enter remote ip address: " IPADDR
-    read -p "Enter remote ssh port: " SSHPORT
-    read -p "Enter remote alias: " UALIAS
+    read -p "Enter remote user name: " -r UNAME
+    read -p "Enter remote ip address: " -r IPADDR
+    read -p "Enter remote ssh port: " -r SSHPORT
+    read -p "Enter remote alias: " -r UALIAS
 else
     UNAME="$1"
     IPADDR="$2"
@@ -47,24 +47,24 @@ if [[ -f "$RSA_KEY" || -f "$RSA_KEY.pub" ]]; then
    exit 2
 fi
 
-if  grep -q "Hostname $IPADDR" "$CONFIG_FILE" ; then
+if  grep -q -w "Hostname $IPADDR" "$CONFIG_FILE"; then
     echo "Hostname already exists in $CONFIG_FILE. Please fix."
     exit 3
 fi
 
-if  grep -q "Host $UALIAS" "$CONFIG_FILE" ; then
+if  grep -q -w "Host $UALIAS" "$CONFIG_FILE"; then
     echo "Alias already exists in $CONFIG_FILE. Please fix."
     exit 3
 fi
 
 echo -e -n "Step 2: Checking host availability... "
-ping -w 3 -c 1 $IPADDR &> /dev/null
-if [ "$?" = 0 ]
+
+if ! ping -w 3 -c 1 "$IPADDR" &> /dev/null
 then
-    echo "Host is alive"
-else
     echo "Host not found. Please fix."
     exit 4
+else
+    echo "Host is alive"
 fi
 
 echo "************************************"
@@ -100,10 +100,10 @@ chmod 600 "$HOME"/.ssh/authorized_keys
 
 echo -e "Step 5: Creating a new key pair"
 cd "$HOME"/.ssh || exit 1
-cat < /dev/zero | ssh-keygen -f $RSA_KEY -t ecdsa -b 521 -N "" > /dev/null
+cat < /dev/zero | ssh-keygen -f "$RSA_KEY" -t ecdsa -b 521 -N "" > /dev/null
 
 echo -e "Step 6: Sending RSA key to the remote machine"
-cat < "$RSA_KEY.pub" | ssh -p $SSHPORT -o IdentitiesOnly=yes "$UNAME@$IPADDR" 'mkdir -p $HOME/.ssh &&  touch $HOME/.ssh/authorized_keys && cat >> $HOME/.ssh/authorized_keys'
+cat < "$RSA_KEY.pub" | ssh -p "$SSHPORT" -o IdentitiesOnly=yes "$UNAME@$IPADDR" 'mkdir -p $HOME/.ssh &&  touch $HOME/.ssh/authorized_keys && cat >> $HOME/.ssh/authorized_keys'
 
 echo -e "Step 7: Adding alias to ssh config file"
 if test -f "$CONFIG_FILE"; then
@@ -127,7 +127,11 @@ echo -e "Step 9: Try RSA key"
 echo "We will try to connect you to your host: $UNAME@$IPADDR"
 read -p "Continue? [Yy]" -n 1 -r
 echo
+
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
-    ssh "$UALIAS" && exit 0
+  ssh -o ConnectTimeout=2 \
+  -o PasswordAuthentication=no \
+  -o BatchMode=yes "$UALIAS" -p "$SSHPORT" exit && \
+  echo "[TEST] Connection successful." || echo "[TEST] Connection failed!"
 fi
